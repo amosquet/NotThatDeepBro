@@ -4,70 +4,62 @@
  * changes to the libraries and their usages.
  */
 
-package com.example.notthatdeepbro.presentation
-
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.wear.compose.material.MaterialTheme
-import androidx.wear.compose.material.Text
-import androidx.wear.compose.material.TimeText
-import com.example.notthatdeepbro.R
-import com.example.notthatdeepbro.presentation.theme.NotThatDeepBroTheme
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+class MainActivity : AppCompatActivity(), SensorEventListener {
 
+    private lateinit var sensorManager: SensorManager
+    private var barometerSensor: Sensor? = null
+    private lateinit var pressureTextView: TextView
+
+    // Rest of your code...
+
+    fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-        setTheme(android.R.style.Theme_DeviceDefault)
+        // Initialize SensorManager
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-        setContent {
-            WearApp("Android")
+        // Get the barometer sensor
+        barometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE)
+
+        // Reference to the TextView in your layout
+        pressureTextView = findViewById(R.id.pressureTextView)
+
+        if (barometerSensor != null) {
+            // Barometer sensor is available, register a listener
+            sensorManager.registerListener(this, barometerSensor, SensorManager.SENSOR_DELAY_NORMAL)
+        } else {
+            // Barometer sensor is not available on this device
+        }
+
+        // Rest of your code...
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        // Handle sensor data changes here
+        if (event?.sensor == barometerSensor) {
+            val pressureValue = event.values[0]
+            // Update the TextView with the pressure value
+            pressureTextView.text = "Pressure: $pressureValue hPa"
         }
     }
-}
 
-@Composable
-fun WearApp(greetingName: String) {
-    NotThatDeepBroTheme {
-        Box(
-                modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colors.background),
-                contentAlignment = Alignment.Center
-        ) {
-            TimeText()
-            Greeting(greetingName = greetingName)
-        }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        // Handle accuracy changes if needed
     }
-}
 
-@Composable
-fun Greeting(greetingName: String) {
-    Text(
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colors.primary,
-            text = stringResource(R.string.hello_world, greetingName)
-    )
-}
-
-@Preview(device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
-@Composable
-fun DefaultPreview() {
-    WearApp("Preview Android")
+    fun onPause() {
+        super.onPause()
+        // Unregister the sensor listener when the activity is paused
+        sensorManager.unregisterListener(this)
+    }
 }
